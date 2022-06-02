@@ -76,6 +76,52 @@ const Home: NextPage = () => {
     setData(dataRes);
   };
 
+  const extractPerc = (data: DataRes) => {
+    let extractScore = 0;
+
+    alchemicaNames.map((name) => {
+      const address = inputAddress.toLowerCase();
+
+      //@ts-ignore
+      const receive = data.receiveAmounts[address]
+        ? //@ts-ignore
+          data.receiveAmounts[address][name]
+        : 0;
+
+      //@ts-ignore
+      const sold = data.outboundAmounts[address]
+        ? //@ts-ignore
+          data.outboundAmounts[address][name]
+        : 0;
+
+      const extract = receive > 0 ? (sold / receive) * 100 : 0;
+
+      extractScore += extract / 4;
+    });
+
+    return extractScore;
+  };
+
+  const type = (data: DataRes) => {
+    const extractScore = extractPerc(data);
+
+    if (extractScore === 100) return "bot";
+    if (extractScore >= 80) return "extractooor";
+    if (extractScore >= 60) return "player";
+    if (extractScore >= 40) return "buildooor";
+    else return "investooor";
+  };
+
+  const playerType = (
+    type: "extractooor" | "player" | "buildooor" | "investooor" | "bot"
+  ) => {
+    if (type === "bot") return "Selling 100%";
+    if (type === "extractooor") return "Selling more than 80%";
+    if (type === "player") return "Selling more than 60%";
+    if (type === "buildooor") return "Keeping more than 60%";
+    else return "Keeping more than 80%";
+  };
+
   return (
     <div className={styles.container}>
       <Head>
@@ -112,6 +158,13 @@ const Home: NextPage = () => {
           </button>
         </div>
 
+        {data && (
+          <h3>
+            Inbound: {data.inbound.ethereum.coinpath.length} | Outbound{" "}
+            {data.inbound.ethereum.coinpath.length}
+          </h3>
+        )}
+
         {data &&
           alchemicaNames.map((name) => {
             console.log("amunts:", data.receiveAmounts);
@@ -119,9 +172,10 @@ const Home: NextPage = () => {
             const address = inputAddress.toLowerCase();
 
             //@ts-ignore
-            const receive =
-              //@ts-ignore
-              data.receiveAmounts[address][name];
+            const receive = data.receiveAmounts[address]
+              ? //@ts-ignore
+                data.receiveAmounts[address][name]
+              : 0;
 
             //@ts-ignore
 
@@ -130,12 +184,7 @@ const Home: NextPage = () => {
                 data.outboundAmounts[address][name]
               : 0;
 
-            const extract =
-              //@ts-ignore
-              (data.outboundAmounts[address][name] /
-                //@ts-ignore
-                data.receiveAmounts[address][name]) *
-              100;
+            const extract = receive > 0 ? (sold / receive) * 100 : 0;
 
             return (
               <div key={name}>
@@ -146,6 +195,20 @@ const Home: NextPage = () => {
               </div>
             );
           })}
+
+        {data && (
+          <h3>
+            {`Your Scholar Type: ${type(data).toUpperCase()}`} (
+            {extractPerc(data).toFixed(2)}
+            %)
+          </h3>
+        )}
+
+        {data && (
+          <p style={{ marginTop: -10 }}>
+            {`This Scholar is ${playerType(type(data))}`} of their earnings.
+          </p>
+        )}
 
         {data && (
           <div>
@@ -221,7 +284,7 @@ const Home: NextPage = () => {
               return (
                 <p key={index}>
                   {isContract !== null && <strong>[Contract]</strong>} {sender}{" "}
-                  sent {val.amount} {val.currency.name} in tx:{" "}
+                  sent {val.amount} {val.currency.name}{" "}
                   <a
                     target="_blank noreferrer"
                     style={{ color: "blue" }}
