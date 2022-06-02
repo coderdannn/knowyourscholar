@@ -214,11 +214,14 @@ const Home: NextPage = () => {
                 ? addressDictionary[val.sender.address]
                 : val.sender.address;
 
+              const isContract = val.sender.smartContract.contractType;
+
               console.log("val:", val);
 
               return (
                 <p key={index}>
-                  {sender} sent {val.amount} {val.currency.name} in tx:{" "}
+                  {isContract !== null && <strong>[Contract]</strong>} {sender}{" "}
+                  sent {val.amount} {val.currency.name} in tx:{" "}
                   <a
                     target="_blank noreferrer"
                     style={{ color: "blue" }}
