@@ -2,6 +2,21 @@
   padding: 0 2rem;
 }
 
+.inputContainer {
+  display: flex;
+}
+
+.input {
+  width: 700px;
+  height: 50px;
+  font-size: 21px;
+}
+
+.goButton {
+  width: 100px;
+  height: 50px;
+}
+
 .main {
   min-height: 100vh;
   padding: 4rem 0;
