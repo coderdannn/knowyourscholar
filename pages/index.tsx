@@ -88,7 +88,7 @@ const Home: NextPage = () => {
         <h1 className={styles.title}>Know Your Scholar</h1>
 
         <p className={styles.description}>
-          Input an address below to see what your scholar's been up to!
+          Input an address below to see what your scholar has been up to!
         </p>
 
         <div className={styles.inputContainer}>
@@ -138,7 +138,7 @@ const Home: NextPage = () => {
               100;
 
             return (
-              <div>
+              <div key={name}>
                 <p>
                   {name.toUpperCase()}: Received {receive.toFixed(2)}, sold{" "}
                   {sold.toFixed(2)} extract rate: {extract.toFixed(2)}%
@@ -150,7 +150,7 @@ const Home: NextPage = () => {
         {data && (
           <div>
             <h2>Outbound</h2>
-            {data.outbound.ethereum.coinpath.map((val) => {
+            {data.outbound.ethereum.coinpath.map((val, index) => {
               const receiver = addressDictionary[val.receiver.address]
                 ? addressDictionary[val.receiver.address]
                 : val.receiver.address;
@@ -186,7 +186,7 @@ const Home: NextPage = () => {
                 : "unknown";
 
               return (
-                <p>
+                <p key={index}>
                   <strong>
                     {humanName}{" "}
                     {foundContractCall?.smartContractMethod.signatureHash}
@@ -194,7 +194,7 @@ const Home: NextPage = () => {
                   {foundContractCall ? <strong></strong> : ""} {sender} sent{" "}
                   {val.amount} {val.currency.name} to {receiver}{" "}
                   <a
-                    target="_blank"
+                    target="_blank noreferrer"
                     style={{ color: "blue" }}
                     href={`https://polygonscan.com/tx/${val.transaction.hash}`}
                   >
@@ -209,7 +209,7 @@ const Home: NextPage = () => {
         {data && (
           <div>
             <h2>Inbound</h2>
-            {data.inbound.ethereum.coinpath.map((val) => {
+            {data.inbound.ethereum.coinpath.map((val, index) => {
               const sender = addressDictionary[val.sender.address]
                 ? addressDictionary[val.sender.address]
                 : val.sender.address;
@@ -217,10 +217,10 @@ const Home: NextPage = () => {
               console.log("val:", val);
 
               return (
-                <p>
+                <p key={index}>
                   {sender} sent {val.amount} {val.currency.name} in tx:{" "}
                   <a
-                    target="_blank"
+                    target="_blank noreferrer"
                     style={{ color: "blue" }}
                     href={`https://polygonscan.com/tx/${val.transaction.hash}`}
                   >
@@ -236,7 +236,7 @@ const Home: NextPage = () => {
       <footer className={styles.footer}>
         <a
           href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
+          target="_blank noreferrer"
           rel="noopener noreferrer"
         >
           Powered by{" "}
