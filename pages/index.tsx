@@ -236,7 +236,7 @@ const Home: NextPage = () => {
             return (
               <div key={name}>
                 <p>
-                  {name.toUpperCase()}: Received {receive.toFixed(2)} | LP'd{" "}
+                  {name.toUpperCase()}: Received {receive.toFixed(2)} | LPd{" "}
                   {lp.toFixed(2)} | Sold {sold.toFixed(2)} extract rate:{" "}
                   {extract.toFixed(2)}%
                 </p>
