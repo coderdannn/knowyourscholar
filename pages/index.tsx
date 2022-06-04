@@ -176,6 +176,19 @@ const Home: NextPage = () => {
           Input an address below to see what your scholar has been up to!
         </p>
 
+        <p
+          style={{
+            marginTop: -40,
+            marginBottom: 40,
+            fontSize: "14px",
+            color: "rgba(0,0,0,0.9)",
+          }}
+        >
+          ⚠️ Note: This site currently only tracks ALCHEMICA! Swaps from
+          Alchemica to GHST are currently considered selling. This will get
+          updated in the future.
+        </p>
+
         <div className={styles.inputContainer}>
           <input
             onKeyDown={(event) => handleKeyDown(event)}
