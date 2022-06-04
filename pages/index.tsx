@@ -125,17 +125,17 @@ const Home: NextPage = () => {
     if (extractScore === 100) return "bot";
     if (extractScore >= 80) return "extractooor";
     if (extractScore >= 60) return "player";
-    if (extractScore >= 40) return "buildooor";
+    if (extractScore >= 40) return "model scholar";
     else return "investooor";
   };
 
   const playerType = (
-    type: "extractooor" | "player" | "buildooor" | "investooor" | "bot"
+    type: "extractooor" | "player" | "model scholar" | "investooor" | "bot"
   ) => {
     if (type === "bot") return "Selling 100%";
     if (type === "extractooor") return "Selling more than 80%";
     if (type === "player") return "Selling more than 60%";
-    if (type === "buildooor") return "Keeping more than 60%";
+    if (type === "model scholar") return "Keeping more than 40%";
     else return "Keeping more than 80%";
   };
 
