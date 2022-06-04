@@ -65,12 +65,18 @@ query ExtractoorCoinpath($addresses: [String!]!, $checkTokens: [String!]!) {
         address
         smartContract {
           contractType
+        
         }
       }
       receiver {
         address
         smartContract {
           contractType
+          currency {
+            tokenType
+            symbol
+
+          }
         }
       }
       transaction {

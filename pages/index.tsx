@@ -4,9 +4,20 @@ import Image from "next/image";
 import { useState } from "react";
 import styles from "../styles/Home.module.css";
 import * as ethers from "ethers";
-import { alchemicaNames, spilloverExtractors } from "../functions";
-import { CoinpathRes, Recipient, SmartContractRes } from "../types";
+import {
+  alchemicaNames,
+  craftAddresses,
+  spilloverExtractors,
+} from "../functions";
+import {
+  Coinpath,
+  CoinpathRes,
+  Recipient,
+  SmartContractCall,
+  SmartContractRes,
+} from "../types";
 import { addressDictionary } from "../addressDictionary";
+import { recipientName } from "../helpers";
 
 interface DataRes {
   inbound: CoinpathRes;
@@ -14,7 +25,7 @@ interface DataRes {
   receiveAmounts: Recipient;
   outboundAmounts: Recipient;
   craftAmounts: Recipient;
-  smartContract: SmartContractRes;
+  smartContract: SmartContractCall[];
 }
 
 interface SighashToName {
@@ -47,7 +58,7 @@ const sigHashToName: SighashToName = {
   "5c11d795": "swapExactTokensForTokensSupportingFeeOnTransferTokens",
 
   // "23b872dd": "craftTiles",
-  "9ff2a527": "craftTiles",
+  "9ff2a527": "craft",
   e8e33700: "addLiquidity",
   f5741bb8: "upgradeInstallation",
   "496e6d55": "finalizeUpgrades",
@@ -56,11 +67,13 @@ const sigHashToName: SighashToName = {
 
 const Home: NextPage = () => {
   const [inputAddress, setInputAddress] = useState(
-    "0xa69d198c6474fe2b41ec69f924f0ce600cc9bf61"
+    "0xeda29227543b2bc0d8e4a5220ef0a34868033a2d"
   );
   const [valid, setValid] = useState(false);
 
   const [data, setData] = useState<DataRes>();
+
+  const [loading, setLoading] = useState(false);
 
   const validAddress = async (address: string) => {
     try {
@@ -72,8 +85,15 @@ const Home: NextPage = () => {
   };
 
   const handler = async () => {
-    const dataRes = await spilloverExtractors(inputAddress, false);
-    setData(dataRes);
+    setLoading(true);
+
+    try {
+      const dataRes = await spilloverExtractors(inputAddress, true);
+      setData(dataRes);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+    }
   };
 
   const extractPerc = (data: DataRes) => {
@@ -122,6 +142,21 @@ const Home: NextPage = () => {
     else return "Keeping more than 80%";
   };
 
+  const humanName = (
+    val: Coinpath,
+    smartContract: SmartContractCall | undefined
+  ) => {
+    if (craftAddresses.includes(recipientName(val))) {
+      return "[Crafting]";
+    }
+
+    const name = smartContract
+      ? sigHashToName[smartContract.smartContractMethod.signatureHash]
+      : "unknown";
+
+    return name;
+  };
+
   return (
     <div className={styles.container}>
       <Head>
@@ -153,22 +188,24 @@ const Home: NextPage = () => {
             className={styles.input}
           ></input>
 
-          <button onClick={() => handler()} className={styles.goButton}>
-            Go
+          <button
+            disabled={loading}
+            onClick={() => handler()}
+            className={styles.goButton}
+          >
+            {loading ? "Loading..." : "Go"}
           </button>
         </div>
 
         {data && (
           <h3>
             Inbound: {data.inbound.ethereum.coinpath.length} | Outbound{" "}
-            {data.inbound.ethereum.coinpath.length}
+            {data.outbound.ethereum.coinpath.length}
           </h3>
         )}
 
         {data &&
           alchemicaNames.map((name) => {
-            console.log("amunts:", data.receiveAmounts);
-
             const address = inputAddress.toLowerCase();
 
             //@ts-ignore
@@ -218,44 +255,26 @@ const Home: NextPage = () => {
                 ? addressDictionary[val.receiver.address]
                 : val.receiver.address;
 
-              console.log("val:", val.transaction.hash);
+              // console.log("val:", val.transaction.hash);
 
-              const foundContractCall =
-                data.smartContract.ethereum.smartContractCalls.find((sc) => {
-                  console.log(
-                    "tx:",
-                    sc.smartContractMethod.name,
-                    sc.smartContractMethod.signatureHash
-                  );
+              const foundContractCall = data.smartContract.find((sc) => {
+                // console.log(
+                //   "tx:",
+                //   sc.smartContractMethod.name,
+                //   sc.smartContractMethod.signatureHash
+                // );
 
-                  return (
-                    sc.transaction.hash === val.transaction.hash &&
-                    sigHashToName[sc.smartContractMethod.signatureHash]
-                  );
-                });
-
-              //   console.log("txns:", val.transactions.length);
-
-              console.log("found call:", foundContractCall);
-
-              const sender = addressDictionary[val.sender.address]
-                ? addressDictionary[val.sender.address]
-                : val.sender.address;
-
-              const humanName = foundContractCall
-                ? sigHashToName[
-                    foundContractCall.smartContractMethod.signatureHash
-                  ]
-                : "unknown";
+                return (
+                  sc.transaction.hash === val.transaction.hash &&
+                  sigHashToName[sc.smartContractMethod.signatureHash]
+                );
+              });
 
               return (
                 <p key={index}>
-                  <strong>
-                    {humanName}{" "}
-                    {foundContractCall?.smartContractMethod.signatureHash}
-                  </strong>
-                  {foundContractCall ? <strong></strong> : ""} {sender} sent{" "}
-                  {val.amount} {val.currency.name} to {receiver}{" "}
+                  <strong>{humanName(val, foundContractCall)} </strong>
+                  {foundContractCall ? <strong></strong> : ""}{" "}
+                  {val.amount.toFixed(2)} {val.currency.name} to {receiver}{" "}
                   <a
                     target="_blank noreferrer"
                     style={{ color: "blue" }}
@@ -278,8 +297,6 @@ const Home: NextPage = () => {
                 : val.sender.address;
 
               const isContract = val.sender.smartContract.contractType;
-
-              console.log("val:", val);
 
               return (
                 <p key={index}>

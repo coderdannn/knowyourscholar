@@ -1,5 +1,6 @@
 import request from "graphql-request";
 import { addressDictionary } from "./addressDictionary";
+import { recipientName } from "./helpers";
 import {
   bitQueryURL,
   extractooorCoinpath,
@@ -19,6 +20,23 @@ import {
 
 export const alchemicaNames = ["fud", "fomo", "alpha", "kek"];
 
+const alchemica = [
+  "0x42e5e06ef5b90fe15f853f59299fc96259209c5c", //kek
+  "0x6a3e7c3c6ef65ee26975b12293ca1aad7e1daed2", //alpha
+  "0x403e967b044d4be25170310157cb1a4bf10bdd0f", //fud
+  "0x44a6e0be76e1d9620a7f76588e4509fe4fa8e8c8", //fomo
+];
+
+export const craftAddresses = [
+  "Pixelcraft",
+  "AavegotchiDAO",
+  "Gotchiverse Contract",
+  "Polygon burn address",
+  "Pixelcraft Gnosis",
+];
+
+export const otherAddresses = ["AavegotchiGBM", "Aavegotchi"];
+
 export async function spilloverExtractors(address: string, output: boolean) {
   /* SCRIPT DESCRIPTION 
   
@@ -31,13 +49,6 @@ export async function spilloverExtractors(address: string, output: boolean) {
   OTHER - unused (was previously used for GHST)
   
   */
-
-  const alchemica = [
-    "0x42e5e06ef5b90fe15f853f59299fc96259209c5c", //kek
-    "0x6a3e7c3c6ef65ee26975b12293ca1aad7e1daed2", //alpha
-    "0x403e967b044d4be25170310157cb1a4bf10bdd0f", //fud
-    "0x44a6e0be76e1d9620a7f76588e4509fe4fa8e8c8", //fomo
-  ];
 
   const senderCount: SenderCount = {};
   const senderRecipients: SenderRecipient = {};
@@ -54,155 +65,43 @@ export async function spilloverExtractors(address: string, output: boolean) {
 
   const owners = [address];
 
-  // console.log("owners:", owners);
+  try {
+    // console.log("owners:", owners);
 
-  const res: CoinpathRes = await request(
-    bitQueryURL,
-    extractooorCoinpath,
-    {
-      checkTokens: alchemica,
-      // addresses: addresses,
-      addresses: owners,
-    },
+    const res: CoinpathRes = await request(
+      bitQueryURL,
+      extractooorCoinpath,
+      {
+        checkTokens: alchemica,
+        // addresses: addresses,
+        addresses: owners,
+      },
 
-    //@ts-ignore
-    queryHeaders
-  );
+      //@ts-ignore
+      queryHeaders
+    );
 
-  console.log(`${res.ethereum.coinpath.length} inbound transfers found!`);
+    console.log(`${res.ethereum.coinpath.length} inbound transfers found!`);
 
-  // const smartContractCallsRes =
+    // const smartContractCallsRes =
 
-  const allRecipients: Recipient = {};
+    const allRecipients: Recipient = {};
 
-  res.ethereum.coinpath.forEach((element) => {
-    const sender = element.sender.address;
-    const recipient = element.receiver.address;
-
-    if (output) {
-      // console.log(
-      //   `Received ${element.amount} ${element.currency.name} from ${sender}`
-      // );
-    }
-
-    const currency = element.currency.name.split(" ")[1].toLowerCase();
-
-    // if (!addressDictionary[recipient] && !ignore.includes(recipient)) {
-    if (!allRecipients[recipient]) {
-      allRecipients[recipient] = {
-        fud: 0,
-        fomo: 0,
-        alpha: 0,
-        kek: 0,
-      };
-    }
-
-    if (allRecipients[recipient]) {
-      //@ts-expect-error
-      allRecipients[recipient][currency] =
-        //@ts-expect-error
-        allRecipients[recipient][currency] + element.amount;
-    } else {
-      //@ts-expect-error
-      allRecipients[recipient][currency] = element.amount;
-    }
-    // }
-
-    //Initialize
-    if (!senderCount[sender]) {
-      senderCount[sender] = {
-        txNumber: 0,
-        txRecipients: 0,
-        txAmounts: [],
-      };
-    }
-    if (!senderRecipients[sender]) {
-      senderRecipients[sender] = [];
-    }
-
-    senderCount[sender].txNumber++;
-    senderCount[sender].txAmounts.push(element.amount);
-
-    if (!senderRecipients[sender].includes(recipient)) {
-      senderRecipients[sender].push(recipient);
-      if (!senderCount[sender].txRecipients) {
-        senderCount[sender].txRecipients = 1;
-      } else {
-        senderCount[sender].txRecipients++;
-      }
-    }
-    //   }
-  });
-
-  //Now lets see how much they sell!
-
-  const sellRes: CoinpathRes = await request(
-    bitQueryURL,
-    extractooorSells,
-    {
-      // ignore: ignore,
-      // block: currentBlock - 1296000 * 4,
-      checkTokens: alchemica,
-      // addresses: addresses,
-      addresses: owners,
-    },
-
-    //@ts-ignore
-    queryHeaders
-  );
-
-  console.log(`${sellRes.ethereum.coinpath.length} outbound transfers found!`);
-
-  const txHashes = sellRes.ethereum.coinpath
-    .map((val) => val.transaction.hash)
-    .slice(0, 100);
-
-  const smartContractRes: SmartContractRes = await request(
-    bitQueryURL,
-    smartContractcalls,
-    {
-      txHashes: txHashes,
-    },
-
-    //@ts-ignore
-    queryHeaders
-  );
-
-  console.log("smart contract:", smartContractRes.ethereum.smartContractCalls);
-
-  const sellAmounts: Recipient = {};
-  const craftAmounts: Recipient = {};
-  // const otherAmounts: Recipient = {};
-
-  sellRes.ethereum.coinpath.forEach((element) => {
-    if (element.amount !== 0) {
-      // console.log("element:", element);
-
-      //not really interested in smart contracts
-      //  if (element.sender.smartContract.contractType === null) {
+    res.ethereum.coinpath.forEach((element) => {
       const sender = element.sender.address;
       const recipient = element.receiver.address;
 
-      //All the smart contract txns
-      // if (element.receiver.smartContract.contractType !== null) {
-      // console.log(
-      //   `${sender} sent ${element.amount} ${element.currency.name} to ${recipient}, ${element.transactions[0].txHash}. Contract type: ${element.receiver.smartContract.contractType}`
-      // );
-      // }
-
-      const craftAddresses = [
-        "Pixelcraft",
-        "AavegotchiDAO",
-        "Gotchiverse Contract",
-        "Polygon burn address",
-      ];
-
-      // const otherAddresses = ["AavegotchiGBM", "Aavegotchi"];
+      if (output) {
+        // console.log(
+        //   `Received ${element.amount} ${element.currency.name} from ${sender}`
+        // );
+      }
 
       const currency = element.currency.name.split(" ")[1].toLowerCase();
 
-      if (!sellAmounts[sender]) {
-        sellAmounts[sender] = {
+      // if (!addressDictionary[recipient] && !ignore.includes(recipient)) {
+      if (!allRecipients[recipient]) {
+        allRecipients[recipient] = {
           fud: 0,
           fomo: 0,
           alpha: 0,
@@ -210,113 +109,248 @@ export async function spilloverExtractors(address: string, output: boolean) {
         };
       }
 
-      // if (!otherAmounts[sender]) {
-      //   otherAmounts[sender] = {
-      //     fud: 0,
-      //     fomo: 0,
-      //     alpha: 0,
-      //     kek: 0,
-      //   };
+      if (allRecipients[recipient]) {
+        //@ts-expect-error
+        allRecipients[recipient][currency] =
+          //@ts-expect-error
+          allRecipients[recipient][currency] + element.amount;
+      } else {
+        //@ts-expect-error
+        allRecipients[recipient][currency] = element.amount;
+      }
       // }
 
-      if (!craftAmounts[sender]) {
-        craftAmounts[sender] = {
-          fud: 0,
-          fomo: 0,
-          alpha: 0,
-          kek: 0,
+      //Initialize
+      if (!senderCount[sender]) {
+        senderCount[sender] = {
+          txNumber: 0,
+          txRecipients: 0,
+          txAmounts: [],
         };
       }
-
-      //Crafting
-      if (craftAddresses.includes(recipient)) {
-        //@ts-expect-error
-        craftAmounts[sender][currency] += element.amount;
+      if (!senderRecipients[sender]) {
+        senderRecipients[sender] = [];
       }
-      //other
-      // } else if (otherAddresses.includes(recipient)) {
+
+      senderCount[sender].txNumber++;
+      senderCount[sender].txAmounts.push(element.amount);
+
+      if (!senderRecipients[sender].includes(recipient)) {
+        senderRecipients[sender].push(recipient);
+        if (!senderCount[sender].txRecipients) {
+          senderCount[sender].txRecipients = 1;
+        } else {
+          senderCount[sender].txRecipients++;
+        }
+      }
+      //   }
+    });
+
+    //Now lets see how much they sell!
+
+    const sellRes: CoinpathRes = await request(
+      bitQueryURL,
+      extractooorSells,
+      {
+        // ignore: ignore,
+        // block: currentBlock - 1296000 * 4,
+        checkTokens: alchemica,
+        // addresses: addresses,
+        addresses: owners,
+      },
+
+      //@ts-ignore
+      queryHeaders
+    );
+
+    console.log("sellres:", sellRes.ethereum.coinpath);
+    console.log(
+      `${sellRes.ethereum.coinpath.length} outbound transfers found!`
+    );
+
+    const txHashes = sellRes.ethereum.coinpath
+      .filter((val) => {
+        return (
+          !craftAddresses.includes(recipientName(val)) &&
+          !otherAddresses.includes(recipientName(val))
+        );
+      })
+      .map((val) => val.transaction.hash);
+    // .slice(0, 100);
+
+    let smartContractCalls: SmartContractCall[] = [];
+    const batchSize = 100;
+    const batches = Math.ceil(txHashes.length / batchSize);
+
+    for (let index = 0; index < batches; index++) {
+      console.log(`Looking up sc calls, batch ${index} of ${batches}`);
+      const batch = txHashes.slice(index * batchSize, (index + 1) * batchSize);
+
+      const smartContractRes: SmartContractRes = await request(
+        bitQueryURL,
+        smartContractcalls,
+        {
+          txHashes: batch,
+        },
+
+        //@ts-ignore
+        queryHeaders
+      );
+
+      smartContractCalls = smartContractCalls.concat(
+        smartContractRes.ethereum.smartContractCalls
+      );
+    }
+
+    console.log("hashes:", txHashes);
+
+    console.log("smart contract:", smartContractCalls);
+
+    const sellAmounts: Recipient = {};
+    const craftAmounts: Recipient = {};
+    const otherAmounts: Recipient = {};
+
+    sellRes.ethereum.coinpath.forEach((element) => {
+      if (element.amount !== 0) {
+        const sender = element.sender.address;
+
+        const currency = element.currency.name.split(" ")[1].toLowerCase();
+
+        if (!sellAmounts[sender]) {
+          sellAmounts[sender] = {
+            fud: 0,
+            fomo: 0,
+            alpha: 0,
+            kek: 0,
+          };
+        }
+
+        if (!otherAmounts[sender]) {
+          otherAmounts[sender] = {
+            fud: 0,
+            fomo: 0,
+            alpha: 0,
+            kek: 0,
+          };
+        }
+
+        if (!craftAmounts[sender]) {
+          craftAmounts[sender] = {
+            fud: 0,
+            fomo: 0,
+            alpha: 0,
+            kek: 0,
+          };
+        }
+
+        //Crafting
+        if (craftAddresses.includes(recipientName(element))) {
+          //@ts-expect-error
+          craftAmounts[sender][currency] += element.amount;
+
+          // other
+        } else if (otherAddresses.includes(recipientName(element))) {
+          //@ts-expect-error
+          otherAmounts[sender][currency] += element.amount;
+        }
+
+        //selling
+        else {
+          //Check the tx type
+          const contractCalls = smartContractCalls.filter(
+            (val) => val.transaction.hash === element.transaction.hash
+          );
+
+          const addLiquidity = contractCalls.find(
+            (val) => val.smartContractMethod.name === "addLiquidity"
+          );
+
+          if (addLiquidity) {
+            //@ts-expect-error
+            otherAmounts[sender][currency] += element.amount;
+          } else {
+            //@ts-expect-error
+            sellAmounts[sender][currency] += element.amount;
+          }
+
+          console.log("contract calls:", contractCalls);
+        }
+      }
+    });
+
+    Object.entries(allRecipients).forEach((element) => {
+      const received = element[1];
+
+      console.log("Analysis of account:", element[0]);
+      const sell = sellAmounts[element[0]];
+      const craft = craftAmounts[element[0]];
+      const other = otherAmounts[element[0]];
+
+      let fud = element[1].fud;
+      let fomo = element[1].fomo;
+      let alpha = element[1].alpha;
+      let kek = element[1].kek;
+
+      if (output) console.log("RECEIVED:", element[1]);
+
+      if (sell) {
+        if (output) console.log("SOLD:", sell);
+
+        fud = element[1].fud - sell.fud;
+        fomo = element[1].fomo - sell.fomo;
+        alpha = element[1].alpha - sell.alpha;
+        kek = element[1].kek - sell.kek;
+      }
+
+      if (craft) {
+        if (output) console.log("CRAFTED:", craftAmounts[element[0]]);
+
+        fud = element[1].fud - craft.fud;
+        fomo = element[1].fomo - craft.fomo;
+        alpha = element[1].alpha - craft.alpha;
+        kek = element[1].kek - craft.kek;
+      }
+
+      // if (other) {
+      //   if (output) console.log(" OTHER:", otherAmounts[element[0]]);
+
+      //   fud = element[1].fud - craft.fud;
+      //   fomo = element[1].fomo - craft.fomo;
+      //   alpha = element[1].alpha - craft.alpha;
+      //   kek = element[1].kek - craft.kek;
+      // }
+
+      // alchemicaNames.forEach((name) => {
+      //   console.log("sell:", sell);
+
       //   //@ts-expect-error
-      //   otherAmounts[sender][currency] += element.amount;
-      // }
+      //   const sold = sell[name];
 
-      //selling
-      else {
-        //@ts-expect-error
-        sellAmounts[sender][currency] += element.amount;
-      }
-    }
-  });
+      //   //@ts-expect-error
+      //   const earned = received[name];
 
-  Object.entries(allRecipients).forEach((element) => {
-    const received = element[1];
+      //   console.log(
+      //     `${name.toUpperCase()}: Sold ${sold.toFixed(2)} of ${earned.toFixed(
+      //       2
+      //     )}. ${
+      //       //@ts-expect-error
+      //       ((sell[name] / element[1][name]) * 100).toFixed(2)
+      //     }% extracted!`
+      //   );
+      // });
+    });
 
-    console.log("Analysis of account:", element[0]);
-    const sell = sellAmounts[element[0]];
-    const craft = craftAmounts[element[0]];
-    // const other = otherAmounts[element[0]];
-
-    let fud = element[1].fud;
-    let fomo = element[1].fomo;
-    let alpha = element[1].alpha;
-    let kek = element[1].kek;
-
-    if (output) console.log("RECEIVED:", element[1]);
-
-    if (sell) {
-      if (output) console.log("SOLD:", sell);
-
-      fud = element[1].fud - sell.fud;
-      fomo = element[1].fomo - sell.fomo;
-      alpha = element[1].alpha - sell.alpha;
-      kek = element[1].kek - sell.kek;
-    }
-
-    if (craft) {
-      if (output) console.log("CRAFTED:", craftAmounts[element[0]]);
-
-      fud = element[1].fud - craft.fud;
-      fomo = element[1].fomo - craft.fomo;
-      alpha = element[1].alpha - craft.alpha;
-      kek = element[1].kek - craft.kek;
-    }
-
-    // if (other) {
-    //   if (output) console.log(" OTHER:", otherAmounts[element[0]]);
-
-    //   fud = element[1].fud - craft.fud;
-    //   fomo = element[1].fomo - craft.fomo;
-    //   alpha = element[1].alpha - craft.alpha;
-    //   kek = element[1].kek - craft.kek;
-    // }
-
-    // alchemicaNames.forEach((name) => {
-    //   console.log("sell:", sell);
-
-    //   //@ts-expect-error
-    //   const sold = sell[name];
-
-    //   //@ts-expect-error
-    //   const earned = received[name];
-
-    //   console.log(
-    //     `${name.toUpperCase()}: Sold ${sold.toFixed(2)} of ${earned.toFixed(
-    //       2
-    //     )}. ${
-    //       //@ts-expect-error
-    //       ((sell[name] / element[1][name]) * 100).toFixed(2)
-    //     }% extracted!`
-    //   );
-    // });
-  });
-
-  return {
-    inbound: res,
-    outbound: sellRes,
-    receiveAmounts: allRecipients,
-    outboundAmounts: sellAmounts,
-    craftAmounts: craftAmounts,
-    smartContract: smartContractRes,
-  };
+    return {
+      inbound: res,
+      outbound: sellRes,
+      receiveAmounts: allRecipients,
+      outboundAmounts: sellAmounts,
+      craftAmounts: craftAmounts,
+      smartContract: smartContractCalls,
+    };
+  } catch (error) {
+    console.log("error:", error);
+  }
 
   // const finalCount: SenderCount = {};
 
