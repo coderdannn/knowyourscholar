@@ -9,13 +9,7 @@ import {
   craftAddresses,
   spilloverExtractors,
 } from "../functions";
-import {
-  Coinpath,
-  CoinpathRes,
-  Recipient,
-  SmartContractCall,
-  SmartContractRes,
-} from "../types";
+import { Coinpath, CoinpathRes, Recipient, SmartContractCall } from "../types";
 import { addressDictionary } from "../addressDictionary";
 import { recipientName } from "../helpers";
 
@@ -25,6 +19,7 @@ interface DataRes {
   receiveAmounts: Recipient;
   outboundAmounts: Recipient;
   craftAmounts: Recipient;
+  lpAmounts: Recipient;
   smartContract: SmartContractCall[];
 }
 
@@ -67,13 +62,15 @@ const sigHashToName: SighashToName = {
 
 const Home: NextPage = () => {
   const [inputAddress, setInputAddress] = useState(
-    "0xeda29227543b2bc0d8e4a5220ef0a34868033a2d"
+    "0xa69d198c6474fe2b41ec69f924f0ce600cc9bf61"
   );
   const [valid, setValid] = useState(false);
 
   const [data, setData] = useState<DataRes>();
 
   const [loading, setLoading] = useState(false);
+
+  const [hideCrafting, setHideCrafting] = useState(false);
 
   const validAddress = async (address: string) => {
     try {
@@ -147,7 +144,7 @@ const Home: NextPage = () => {
     smartContract: SmartContractCall | undefined
   ) => {
     if (craftAddresses.includes(recipientName(val))) {
-      return "[Crafting]";
+      return "Craft / Upgrade";
     }
 
     const name = smartContract
@@ -204,6 +201,14 @@ const Home: NextPage = () => {
           </h3>
         )}
 
+        {data && data.inbound.ethereum.coinpath.length === 10000 && (
+          <h3 style={{ color: "red" }}>
+            {" "}
+            WARNING: This address has more than 10,000 inbound txns. Data is
+            likely incorrect.
+          </h3>
+        )}
+
         {data &&
           alchemicaNames.map((name) => {
             const address = inputAddress.toLowerCase();
@@ -221,35 +226,48 @@ const Home: NextPage = () => {
                 data.outboundAmounts[address][name]
               : 0;
 
+            const lp = data.lpAmounts[address]
+              ? //@ts-ignore
+                data.lpAmounts[address][name]
+              : 0;
+
             const extract = receive > 0 ? (sold / receive) * 100 : 0;
 
             return (
               <div key={name}>
                 <p>
-                  {name.toUpperCase()}: Received {receive.toFixed(2)}, sold{" "}
-                  {sold.toFixed(2)} extract rate: {extract.toFixed(2)}%
+                  {name.toUpperCase()}: Received {receive.toFixed(2)} | LP'd{" "}
+                  {lp.toFixed(2)} | Sold {sold.toFixed(2)} extract rate:{" "}
+                  {extract.toFixed(2)}%
                 </p>
               </div>
             );
           })}
 
         {data && (
-          <h3>
-            {`Your Scholar Type: ${type(data).toUpperCase()}`} (
-            {extractPerc(data).toFixed(2)}
-            %)
-          </h3>
-        )}
+          <div>
+            <hr />
+            <h3>
+              {`Your Scholar Type: ${type(data).toUpperCase()}`} (
+              {extractPerc(data).toFixed(2)}
+              %)
+            </h3>
 
-        {data && (
-          <p style={{ marginTop: -10 }}>
-            {`This Scholar is ${playerType(type(data))}`} of their earnings.
-          </p>
+            <p style={{ marginTop: -10 }}>
+              {`This Scholar is ${playerType(type(data))}`} of their earnings.
+            </p>
+          </div>
         )}
 
         {data && (
           <div>
-            <h2>Outbound</h2>
+            <hr />
+            <h2>Outbound Txns</h2>
+
+            <button onClick={() => setHideCrafting(!hideCrafting)}>
+              {hideCrafting ? "Show Crafting" : "Hide Crafting"}
+            </button>
+
             {data.outbound.ethereum.coinpath.map((val, index) => {
               const receiver = addressDictionary[val.receiver.address]
                 ? addressDictionary[val.receiver.address]
@@ -270,9 +288,15 @@ const Home: NextPage = () => {
                 );
               });
 
+              const name = humanName(val, foundContractCall);
+
+              if (val.amount === 0) return null;
+
+              if (hideCrafting && name === "Craft / Upgrade") return null;
+
               return (
                 <p key={index}>
-                  <strong>{humanName(val, foundContractCall)} </strong>
+                  <strong>[{humanName(val, foundContractCall)}] </strong>
                   {foundContractCall ? <strong></strong> : ""}{" "}
                   {val.amount.toFixed(2)} {val.currency.name} to {receiver}{" "}
                   <a
@@ -290,7 +314,7 @@ const Home: NextPage = () => {
 
         {data && (
           <div>
-            <h2>Inbound</h2>
+            <h2>Inbound Txns</h2>
             {data.inbound.ethereum.coinpath.map((val, index) => {
               const sender = addressDictionary[val.sender.address]
                 ? addressDictionary[val.sender.address]

@@ -1,5 +1,4 @@
 import request from "graphql-request";
-import { addressDictionary } from "./addressDictionary";
 import { recipientName } from "./helpers";
 import {
   bitQueryURL,
@@ -10,7 +9,6 @@ import {
 } from "./queries";
 import {
   CoinpathRes,
-  GotchiLendingRes,
   Recipient,
   SenderCount,
   SenderRecipient,
@@ -53,21 +51,9 @@ export async function spilloverExtractors(address: string, output: boolean) {
   const senderCount: SenderCount = {};
   const senderRecipients: SenderRecipient = {};
 
-  //   // //Then we fetch all the Gotchi Lendings to get the Gotchi IDs
-  //   const lendingRes: GotchiLendingRes = await request(
-  //     lendingURL,
-  //     findLenders(10)
-  //   );
-
-  //   const owners = [
-  //     ...new Set(lendingRes.gotchiLendings.map((val) => val.borrower)),
-  //   ];
-
   const owners = [address];
 
   try {
-    // console.log("owners:", owners);
-
     const res: CoinpathRes = await request(
       bitQueryURL,
       extractooorCoinpath,
@@ -83,19 +69,11 @@ export async function spilloverExtractors(address: string, output: boolean) {
 
     console.log(`${res.ethereum.coinpath.length} inbound transfers found!`);
 
-    // const smartContractCallsRes =
-
     const allRecipients: Recipient = {};
 
     res.ethereum.coinpath.forEach((element) => {
       const sender = element.sender.address;
       const recipient = element.receiver.address;
-
-      if (output) {
-        // console.log(
-        //   `Received ${element.amount} ${element.currency.name} from ${sender}`
-        // );
-      }
 
       const currency = element.currency.name.split(" ")[1].toLowerCase();
 
@@ -152,20 +130,12 @@ export async function spilloverExtractors(address: string, output: boolean) {
       bitQueryURL,
       extractooorSells,
       {
-        // ignore: ignore,
-        // block: currentBlock - 1296000 * 4,
         checkTokens: alchemica,
-        // addresses: addresses,
         addresses: owners,
       },
 
       //@ts-ignore
       queryHeaders
-    );
-
-    console.log("sellres:", sellRes.ethereum.coinpath);
-    console.log(
-      `${sellRes.ethereum.coinpath.length} outbound transfers found!`
     );
 
     const txHashes = sellRes.ethereum.coinpath
@@ -202,12 +172,9 @@ export async function spilloverExtractors(address: string, output: boolean) {
       );
     }
 
-    console.log("hashes:", txHashes);
-
-    console.log("smart contract:", smartContractCalls);
-
     const sellAmounts: Recipient = {};
     const craftAmounts: Recipient = {};
+    const addLiquidityAmounts: Recipient = {};
     const otherAmounts: Recipient = {};
 
     sellRes.ethereum.coinpath.forEach((element) => {
@@ -243,6 +210,15 @@ export async function spilloverExtractors(address: string, output: boolean) {
           };
         }
 
+        if (!addLiquidityAmounts[sender]) {
+          addLiquidityAmounts[sender] = {
+            fud: 0,
+            fomo: 0,
+            alpha: 0,
+            kek: 0,
+          };
+        }
+
         //Crafting
         if (craftAddresses.includes(recipientName(element))) {
           //@ts-expect-error
@@ -267,7 +243,7 @@ export async function spilloverExtractors(address: string, output: boolean) {
 
           if (addLiquidity) {
             //@ts-expect-error
-            otherAmounts[sender][currency] += element.amount;
+            addLiquidityAmounts[sender][currency] += element.amount;
           } else {
             //@ts-expect-error
             sellAmounts[sender][currency] += element.amount;
@@ -285,30 +261,21 @@ export async function spilloverExtractors(address: string, output: boolean) {
       const sell = sellAmounts[element[0]];
       const craft = craftAmounts[element[0]];
       const other = otherAmounts[element[0]];
-
-      let fud = element[1].fud;
-      let fomo = element[1].fomo;
-      let alpha = element[1].alpha;
-      let kek = element[1].kek;
+      const addLiq = addLiquidityAmounts[element[0]];
 
       if (output) console.log("RECEIVED:", element[1]);
 
       if (sell) {
         if (output) console.log("SOLD:", sell);
-
-        fud = element[1].fud - sell.fud;
-        fomo = element[1].fomo - sell.fomo;
-        alpha = element[1].alpha - sell.alpha;
-        kek = element[1].kek - sell.kek;
       }
 
       if (craft) {
         if (output) console.log("CRAFTED:", craftAmounts[element[0]]);
+      }
 
-        fud = element[1].fud - craft.fud;
-        fomo = element[1].fomo - craft.fomo;
-        alpha = element[1].alpha - craft.alpha;
-        kek = element[1].kek - craft.kek;
+      if (addLiq) {
+        if (output)
+          console.log("ADD LIQUIDITY:", addLiquidityAmounts[element[0]]);
       }
 
       // if (other) {
@@ -347,6 +314,7 @@ export async function spilloverExtractors(address: string, output: boolean) {
       outboundAmounts: sellAmounts,
       craftAmounts: craftAmounts,
       smartContract: smartContractCalls,
+      lpAmounts: addLiquidityAmounts,
     };
   } catch (error) {
     console.log("error:", error);
