@@ -122,21 +122,22 @@ const Home: NextPage = () => {
   const type = (data: DataRes) => {
     const extractScore = extractPerc(data);
 
-    if (extractScore === 100) return "bot";
-    if (extractScore >= 80) return "extractooor";
-    if (extractScore >= 60) return "player";
-    if (extractScore >= 40) return "model scholar";
-    else return "investooor";
+    if (extractScore === 100) return "bot 🤖️";
+    if (extractScore >= 80) return "extractooor 🤑";
+    if (extractScore >= 60) return "player 💸";
+    if (extractScore >= 40) return "model scholar 👩‍🎓";
+    if (extractScore >= 20) return "investooor 🧠";
+    return "diamond hands 💎👋";
   };
 
-  const playerType = (
-    type: "extractooor" | "player" | "model scholar" | "investooor" | "bot"
-  ) => {
-    if (type === "bot") return "Selling 100%";
-    if (type === "extractooor") return "Selling more than 80%";
-    if (type === "player") return "Selling more than 60%";
-    if (type === "model scholar") return "Keeping more than 40%";
-    else return "Keeping more than 80%";
+  const playerType = (data: DataRes) => {
+    const extractScore = extractPerc(data);
+    if (extractScore === 100) return "Selling 100% of";
+    if (extractScore >= 80) return "Selling more than 80% of their earnings.";
+    if (extractScore >= 60) return "Selling more than 60% of their earnings.";
+    if (extractScore >= 40) return "Keeping more than 40% of their earnings.";
+    if (extractScore >= 20) return "Keeping more than 60% of their earnings!";
+    return "HODLING TIL THE MOON!";
   };
 
   const humanName = (
@@ -152,6 +153,12 @@ const Home: NextPage = () => {
       : "unknown";
 
     return name;
+  };
+
+  const handleKeyDown = (event: any) => {
+    if (event.key === "Enter") {
+      handler();
+    }
   };
 
   return (
@@ -171,6 +178,7 @@ const Home: NextPage = () => {
 
         <div className={styles.inputContainer}>
           <input
+            onKeyDown={(event) => handleKeyDown(event)}
             value={inputAddress}
             onChange={(event) => {
               setData(undefined);
@@ -254,7 +262,7 @@ const Home: NextPage = () => {
             </h3>
 
             <p style={{ marginTop: -10 }}>
-              {`This Scholar is ${playerType(type(data))}`} of their earnings.
+              {`This Scholar is ${playerType(data)}`}
             </p>
           </div>
         )}
