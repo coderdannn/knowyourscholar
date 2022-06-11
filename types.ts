@@ -174,5 +174,6 @@ export interface Recipient {
     fomo: number;
     alpha: number;
     kek: number;
+    ghst: number;
   };
 }

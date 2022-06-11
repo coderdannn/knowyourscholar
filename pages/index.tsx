@@ -8,19 +8,28 @@ import {
   alchemicaNames,
   craftAddresses,
   spilloverExtractors,
-} from "../functions";
+} from "../functions/scholarLookup";
 import { Coinpath, CoinpathRes, Recipient, SmartContractCall } from "../types";
 import { addressDictionary } from "../addressDictionary";
 import { recipientName } from "../helpers";
+import { GotchiverseStats } from "../functions/gotchiAssets";
+import { UserGotchi } from "../functions/assetsOwned";
+import { DexTradesRes } from "../functions/dexTrades";
 
 interface DataRes {
   inbound: CoinpathRes;
   outbound: CoinpathRes;
   receiveAmounts: Recipient;
   outboundAmounts: Recipient;
+  gotchiLendingAmounts: Recipient;
+  convertToGhstAmounts: Recipient;
+  transferAmounts: Recipient;
   craftAmounts: Recipient;
   lpAmounts: Recipient;
   smartContract: SmartContractCall[];
+  gotchiverseAssets: GotchiverseStats | undefined;
+  assetsOwned: UserGotchi | undefined;
+  dexTrades: DexTradesRes;
 }
 
 interface SighashToName {
@@ -113,7 +122,7 @@ const Home: NextPage = () => {
 
       const extract = receive > 0 ? (sold / receive) * 100 : 0;
 
-      extractScore += extract / 4;
+      extractScore += extract / 5;
     });
 
     return extractScore;
@@ -176,7 +185,7 @@ const Home: NextPage = () => {
           Input an address below to see what your scholar has been up to!
         </p>
 
-        <p
+        {/*   <p
           style={{
             marginTop: -40,
             marginBottom: 40,
@@ -187,7 +196,7 @@ const Home: NextPage = () => {
           ⚠️ Note: This site currently only tracks ALCHEMICA! Swaps from
           Alchemica to GHST are currently considered selling. This will get
           updated in the future.
-        </p>
+        </p> */}
 
         <div className={styles.inputContainer}>
           <input
@@ -222,6 +231,28 @@ const Home: NextPage = () => {
           </h3>
         )}
 
+        {data?.assetsOwned && data.assetsOwned.parcelsOwned.length > 0 && (
+          <div>Parcels owned: {data.assetsOwned.parcelsOwned.length}</div>
+        )}
+
+        {data?.gotchiverseAssets && (
+          <div>Tiles crafted: {data.gotchiverseAssets.tilesMinted}</div>
+        )}
+
+        {data?.gotchiverseAssets && (
+          <div>
+            Installations crafted:{" "}
+            {data.gotchiverseAssets.installationsMintedTotal}
+          </div>
+        )}
+
+        {data?.gotchiverseAssets && (
+          <div>
+            Upgrades initiated:{" "}
+            {data.gotchiverseAssets.installationsUpgradedTotal}
+          </div>
+        )}
+
         {data && data.inbound.ethereum.coinpath.length === 10000 && (
           <h3 style={{ color: "red" }}>
             {" "}
@@ -247,6 +278,21 @@ const Home: NextPage = () => {
                 data.outboundAmounts[address][name]
               : 0;
 
+            const converted = data.convertToGhstAmounts[address]
+              ? //@ts-ignore
+                data.convertToGhstAmounts[address][name]
+              : 0;
+
+            const gotchiLending = data.gotchiLendingAmounts[address]
+              ? //@ts-ignore
+                data.gotchiLendingAmounts[address][name]
+              : 0;
+
+            const transferred = data.transferAmounts[address]
+              ? //@ts-ignore
+                data.transferAmounts[address][name]
+              : 0;
+
             const lp = data.lpAmounts[address]
               ? //@ts-ignore
                 data.lpAmounts[address][name]
@@ -254,18 +300,31 @@ const Home: NextPage = () => {
 
             const extract = receive > 0 ? (sold / receive) * 100 : 0;
 
-            return (
-              <div key={name}>
-                <p>
-                  {name.toUpperCase()}: Received {receive.toFixed(2)} | LPd{" "}
-                  {lp.toFixed(2)} | Sold {sold.toFixed(2)} extract rate:{" "}
-                  {extract.toFixed(2)}%
-                </p>
-              </div>
-            );
+            if (name === "ghst")
+              return (
+                <div key={name}>
+                  <p>
+                    {name.toUpperCase()}: Received {receive.toFixed(2)} | LPd{" "}
+                    {lp.toFixed(2)} | Spent on Gotchi Lending:{" "}
+                    {gotchiLending.toFixed(2)} | Sold {sold.toFixed(2)} extract
+                    rate: {extract.toFixed(2)}%
+                  </p>
+                </div>
+              );
+            else
+              return (
+                <div key={name}>
+                  <p>
+                    {name.toUpperCase()}: Received {receive.toFixed(2)} | LPd{" "}
+                    {lp.toFixed(2)} | Converted to GHST: {converted.toFixed(2)}{" "}
+                    | Transferred: {transferred.toFixed(2)} | Sold{" "}
+                    {sold.toFixed(2)} extract rate: {extract.toFixed(2)}%
+                  </p>
+                </div>
+              );
           })}
 
-        {data && (
+        {/*  {data && (
           <div>
             <hr />
             <h3>
@@ -278,7 +337,7 @@ const Home: NextPage = () => {
               {`This Scholar is ${playerType(data)}`}
             </p>
           </div>
-        )}
+        )} */}
 
         {data && (
           <div>
@@ -317,6 +376,7 @@ const Home: NextPage = () => {
 
               return (
                 <p key={index}>
+                  <i>{val.block.timestamp.time}</i>{" "}
                   <strong>[{humanName(val, foundContractCall)}] </strong>
                   {foundContractCall ? <strong></strong> : ""}{" "}
                   {val.amount.toFixed(2)} {val.currency.name} to {receiver}{" "}

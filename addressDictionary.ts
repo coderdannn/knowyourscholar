@@ -56,4 +56,8 @@ export const addressDictionary: StringToString = {
   "0xb208f8bb431f580cc4b216826affb128cd1431ab": "AavegotchiDAO",
   "0xffffffffffffffffffffffffffffffffffffffff": "Polygon burn address",
   "0xa44c8e0ecaefe668947154ee2b803bd4e6310efe": "AavegotchiGBM",
+
+  //new
+  "0x64a22fbd745a274988a843c6023d191deef7302b": "fomo-usdc",
+  "0x972f8284289e02fbf75690bb80b4c87bdef7a28a": "alpha-usdc",
 };

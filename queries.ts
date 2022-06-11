@@ -3,6 +3,9 @@ export const queryHeaders = {
   "X-API-KEY": process.env.BITQUERY_API_KEY,
 };
 
+export const coreMaticURL =
+  "https://api.thegraph.com/subgraphs/name/aavegotchi/aavegotchi-core-matic";
+
 export const lendingURL =
   "https://api.thegraph.com/subgraphs/name/froid1911/aavegotchi-lending";
 
