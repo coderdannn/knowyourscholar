@@ -19,7 +19,8 @@ import { userGotchis } from "./assetsOwned";
 import { dexTrades } from "./dexTrades";
 import { gotchiverseStats } from "./gotchiAssets";
 
-export const alchemicaNames = ["ghst", "fud", "fomo", "alpha", "kek"];
+export const tokenNames = ["ghst", "fud", "fomo", "alpha", "kek"];
+export const alchemicaNames = ["fud", "fomo", "alpha", "kek"];
 
 export const craftAddresses = [
   "Pixelcraft",
@@ -91,11 +92,8 @@ export async function spilloverExtractors(address: string, output: boolean) {
 
       const currency = element.currency.name.split(" ")[1].toLowerCase();
 
-      if (currency.includes("ghst"))
-        console.log(`currency:`, element.currency.name, element.amount);
-
-      // if (!addressDictionary[recipient] && !ignore.includes(recipient)) {
       if (!allRecipients[recipient]) {
+        // if (!addressDictionary[recipient] && !ignore.includes(recipient)) {
         allRecipients[recipient] = {
           fud: 0,
           fomo: 0,
@@ -145,6 +143,8 @@ export async function spilloverExtractors(address: string, output: boolean) {
     //Now lets see how much they sell!
 
     const dexTradesRes = await dexTrades(address);
+
+    console.log("trades:", dexTradesRes.ethereum.dexTrades);
 
     const sellRes: CoinpathRes = await request(
       bitQueryURL,
@@ -283,10 +283,6 @@ export async function spilloverExtractors(address: string, output: boolean) {
           ? val.sellCurrency.name.split(" ")[1].toLowerCase()
           : val.sellCurrency.name.toLowerCase();
 
-      /*  console.log(
-        `sell ${val.buyAmount} ${buyCurrency} for ${val.sellAmount} ${sellCurrency}`
-      ); */
-
       //converting alchemica to ghst
       if (alchemicaNames.includes(buyCurrency) && sellCurrency === "ghst") {
         // console.log(
@@ -301,14 +297,39 @@ export async function spilloverExtractors(address: string, output: boolean) {
       ) {
         //@ts-expect-error
         sellAmounts[address][buyCurrency] += val.buyAmount;
+      } else if (buyCurrency === "ghst") {
+        const sameTxns = dexTradesRes.ethereum.dexTrades.filter(
+          (dexTx) => dexTx.transaction.hash === val.transaction.hash
+        );
+
+        /*  console.log(
+          `sell ${val.buyAmount} ${buyCurrency} for ${val.sellAmount} ${sellCurrency}`
+        );
+ */
+        let isAlchemicaSwap = false;
+        sameTxns.forEach((element) => {
+          const buyC =
+            element.buyCurrency.name.split(" ").length > 1
+              ? element.buyCurrency.name.split(" ")[1].toLowerCase()
+              : element.buyCurrency.name.toLowerCase();
+
+          if (alchemicaNames.includes(buyC)) {
+            isAlchemicaSwap = true;
+          }
+        });
+
+        if (isAlchemicaSwap === false) {
+          console.log("sold ghst", val.buyAmount);
+
+          console.log("val:", val);
+          sellAmounts[address][buyCurrency] += val.buyAmount;
+        }
       }
     });
 
     sellRes.ethereum.coinpath.forEach((element) => {
       if (element.amount !== 0) {
         const sender = element.sender.address;
-
-        console.log("senderZ:", sender);
 
         const currency = element.currency.name.split(" ")[1].toLowerCase();
 

@@ -41,6 +41,9 @@ const query = `
             buyCurrency {
               name
             }
+            transaction {
+              hash
+            }
             count
             buyAmount
            

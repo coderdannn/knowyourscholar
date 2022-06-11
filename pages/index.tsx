@@ -5,7 +5,7 @@ import { useState } from "react";
 import styles from "../styles/Home.module.css";
 import * as ethers from "ethers";
 import {
-  alchemicaNames,
+  tokenNames,
   craftAddresses,
   spilloverExtractors,
 } from "../functions/scholarLookup";
@@ -105,7 +105,7 @@ const Home: NextPage = () => {
   const extractPerc = (data: DataRes) => {
     let extractScore = 0;
 
-    alchemicaNames.map((name) => {
+    tokenNames.map((name) => {
       const address = inputAddress.toLowerCase();
 
       //@ts-ignore
@@ -262,7 +262,7 @@ const Home: NextPage = () => {
         )}
 
         {data &&
-          alchemicaNames.map((name) => {
+          tokenNames.map((name) => {
             const address = inputAddress.toLowerCase();
 
             //@ts-ignore
