@@ -302,10 +302,6 @@ export async function spilloverExtractors(address: string, output: boolean) {
           (dexTx) => dexTx.transaction.hash === val.transaction.hash
         );
 
-        /*  console.log(
-          `sell ${val.buyAmount} ${buyCurrency} for ${val.sellAmount} ${sellCurrency}`
-        );
- */
         let isAlchemicaSwap = false;
         sameTxns.forEach((element) => {
           const buyC =
