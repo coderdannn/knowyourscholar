@@ -129,3 +129,87 @@ query SmartContractCalls($txHashes: [String!]!) {
   }
 }
 `;
+
+export const gotchiverseSinks = `
+{installationTypes(first:1000) {
+  id
+  amount
+  alchemicaCost
+  name
+}
+tileTypes(first:1000) {
+  id
+  amount
+  alchemicaCost
+  name
+}
+bounceGateEvents(first:1000) {
+  id
+  priority
+}
+}
+`;
+
+export const gotchiverseSinkEvents = (timestamp: string) => {
+  return `
+{mintInstallationEvents(first:1000, where:{timestamp_gt:${timestamp}}) {
+  id
+  installationType {
+    id
+    name
+    alchemicaCost
+  }
+}
+
+bounceGateEvents(first:1000, where:{lastTimeUpdated_gt:${timestamp}}) {
+  id
+  priority
+}
+}
+`;
+};
+
+export const gotchiverseSources = (
+  timestamp: string,
+  alchemicaType: string
+) => {
+  return `
+{
+  channelAlchemicaEvents(first:1000 orderBy:timestamp, orderDirection:desc, where:{timestamp_gt: ${timestamp}}) {
+  id
+  parcel {
+    id
+    owner
+  }
+  spilloverRate
+  alchemica
+}
+alc1: alchemicaClaimedEvents(first:1000, orderBy:timestamp, orderDirection:desc, where:{alchemicaType:"${alchemicaType}", timestamp_gt:${timestamp}}) {
+${claimedEvent}
+}
+alc2: alchemicaClaimedEvents(skip: 1000, first:1000, orderBy:timestamp, orderDirection:desc, where:{alchemicaType:"${alchemicaType}", timestamp_gt:${timestamp}}) {
+  ${claimedEvent}
+  }
+  alc3: alchemicaClaimedEvents(skip: 2000, first:1000, orderBy:timestamp, orderDirection:desc, where:{alchemicaType:"${alchemicaType}", timestamp_gt:${timestamp}}) {
+    ${claimedEvent}
+    }
+    alc4: alchemicaClaimedEvents(skip: 3000, first:1000, orderBy:timestamp, orderDirection:desc, where:{alchemicaType:"${alchemicaType}", timestamp_gt:${timestamp}}) {
+      ${claimedEvent}
+      }
+      alc5: alchemicaClaimedEvents(skip: 4000 first:1000, orderBy:timestamp, orderDirection:desc, where:{alchemicaType:"${alchemicaType}", timestamp_gt:${timestamp}}) {
+        ${claimedEvent}
+        }
+}
+`;
+};
+
+const claimedEvent = `
+id
+amount
+spilloverRate
+spilloverRadius
+alchemicaType
+parcel {
+  id
+  owner
+}`;
